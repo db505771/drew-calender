@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Playtime Calendar</title>
   <style>
     body {
@@ -12,34 +12,47 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px;
-      touch-action: pan-y;
-      overflow-x: hidden;
+      padding: 15px;
+      margin: 0;
+      min-height: 100vh;
+      box-sizing: border-box;
     }
 
     h1 {
-      margin-bottom: 20px;
+      margin-bottom: 15px;
+      font-size: 1.6rem;
       text-align: center;
     }
 
     .calendar {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 10px;
-      max-width: 500px;
-      transition: transform 0.3s ease;
+      gap: 8px;
+      width: 100%;
+      max-width: 420px;
+      user-select: none;
     }
 
     .day {
-      width: 60px;
-      height: 60px;
       background-color: #1a2b3d;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       border-radius: 8px;
-      font-size: 14px;
+      font-size: 1rem;
+      height: 55px;
+      min-width: 40px;
+      cursor: default;
+      transition: background-color 0.3s ease;
+      box-sizing: border-box;
+      padding: 4px 0;
+    }
+
+    .day span {
+      font-size: 1.3rem;
+      margin-top: 3px;
+      user-select: none;
     }
 
     .day.played {
@@ -47,11 +60,19 @@
     }
 
     .day.today {
-      border: 2px solid #00aced;
+      border: 3px solid #ffd700;
+      background-color: #2a3b5d;
     }
 
-    .day span {
-      font-size: 20px;
+    /* Make calendar horizontally scrollable on very small screens */
+    @media (max-width: 360px) {
+      .calendar {
+        overflow-x: auto;
+        grid-auto-flow: column;
+        grid-template-columns: repeat(auto-fill, 55px);
+        max-width: 100vw;
+        padding-bottom: 10px;
+      }
     }
   </style>
 </head>
@@ -61,7 +82,6 @@
 
   <script>
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRo-SarpignS39lDSaIGsV13WyUJOURcyVaRP_mEqY6XfBxby9WA_XCf5AhXi8OcwHDiP4FLqBwMGKw/pub?output=csv";
-    let currentDate = new Date();
 
     async function fetchData() {
       const res = await fetch(csvUrl);
@@ -80,16 +100,14 @@
       return days;
     }
 
-    async function buildCalendar() {
+    async function buildCalendar(year, month) {
       const calendar = document.getElementById("calendar");
       const title = document.getElementById("calendar-title");
+
       calendar.innerHTML = "";
 
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-      const today = new Date();
-      const isCurrentMonth = (month === today.getMonth() && year === today.getFullYear());
-      const monthName = currentDate.toLocaleString("default", { month: "long" });
+      const dateObj = new Date(year, month);
+      const monthName = dateObj.toLocaleString("default", { month: "long" });
       title.textContent = `${monthName} ${year} Play Calendar`;
 
       const allRows = await fetchData();
@@ -106,10 +124,11 @@
 
       const days = getMonthDays(year, month);
 
+      const today = new Date();
+
       for (const day of days) {
         const div = document.createElement("div");
         div.classList.add("day");
-
         if (playedDates.has(day.getDate())) {
           div.classList.add("played");
           div.innerHTML = `${day.getDate()}<span></span>`;
@@ -117,7 +136,11 @@
           div.innerHTML = `${day.getDate()}<span></span>`;
         }
 
-        if (isCurrentMonth && day.getDate() === today.getDate()) {
+        if (
+          day.getDate() === today.getDate() &&
+          day.getMonth() === today.getMonth() &&
+          day.getFullYear() === today.getFullYear()
+        ) {
           div.classList.add("today");
         }
 
@@ -125,39 +148,9 @@
       }
     }
 
-    // Swipe handling
-    let touchStartX = 0;
-
-    document.addEventListener("touchstart", (e) => {
-      touchStartX = e.touches[0].clientX;
-    });
-
-    document.addEventListener("touchend", (e) => {
-      const touchEndX = e.changedTouches[0].clientX;
-      handleSwipe(touchStartX, touchEndX);
-    });
-
-    document.addEventListener("mousedown", (e) => {
-      touchStartX = e.clientX;
-    });
-
-    document.addEventListener("mouseup", (e) => {
-      const touchEndX = e.clientX;
-      handleSwipe(touchStartX, touchEndX);
-    });
-
-    function handleSwipe(startX, endX) {
-      const diff = startX - endX;
-      if (diff > 50) {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        buildCalendar();
-      } else if (diff < -50) {
-        currentDate.setMonth(currentDate.getMonth() - 1);
-        buildCalendar();
-      }
-    }
-
-    buildCalendar();
+    // For now, just show current month (swipe to come later)
+    const today = new Date();
+    buildCalendar(today.getFullYear(), today.getMonth());
   </script>
 </body>
 </html>
